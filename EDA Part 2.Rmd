@@ -1,0 +1,80 @@
+---
+title: "EDA-Part 2"
+output: html_document
+---
+
+For this exercise, I wanted to study the relationship between the fertility (children per woman) of a country and the expenditure on secondary eductaion
+
+## Read and Tidy the secondary education expenditure data from xlsx file
+```{r}
+
+setwd('C:/Users/Sarah/Documents/R Files/EDA - Lesson 4/EDA Part 2 project files')
+list.files()
+
+library(rJava)
+library(xlsxjars)
+library(xlsx)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+se <- read.xlsx("expenditure secondary.xlsx", sheetIndex = 1, header= TRUE)
+summary(se)
+se <- gather(se, "year", "expenses", 2:length(colnames(se)))
+
+names(se)[names(se) == "Expenditure.per.student..secondary....of.GDP.per.capita."] <- "country"
+se$year <- gsub("X", "", se$year)
+
+
+cpw <- read.xlsx("indicator undata total_fertility.xlsx", sheetName = "Data", header = TRUE)  
+cpw <- gather(cpw, "year", "fertilityRate", 2:length(colnames(cpw)))
+
+names(cpw)[names(cpw) == "Total.fertility.rate"] <- "country"
+cpw$year <- gsub("X", "", cpw$year)
+View(cpw)
+View(se)
+
+
+totalData <- inner_join(se, cpw, by = c('country','year'))
+totalData <- totalData[complete.cases(totalData),]
+
+?complete.cases
+View(totalData)
+rm(se, cpw)
+
+ggplot(data = totalData, aes(x = fertilityRate, y = expenses)) +
+  geom_point()
+
+ggplot(data = totalData, aes(x = fertilityRate, y = expenses)) +
+  geom_point(alpha = 1/4) +
+  xlab("Number of childern per woman") +
+  ylab("Secondary Education expenditure as % of GDP") +
+  ylim(0,100) +
+  ggtitle("Secondary Education expenditure Vs. Fertility Rate")
+
+cor.test(totalData$expenses, totalData$fertilityRate)
+
+ggplot(aes(x=fertilityRate, y = expenses), data = totalData) +
+  xlab("Number of childern per woman") +
+  ylab("Secondary Education expenditure as % of GDP") +
+  ylim(0,100) +
+  geom_line(aes(color = country), show.legend = FALSE)
+  
+```
+
+The relationship between fertility rate and secondary Education expenditure as % of GDP is different for different countries. Let us examine it more closely for a few countries
+
+
+```{r, echo=FALSE}
+sampleCountries <- totalData[ which(totalData$country %in% c("India", "Brazil", "United States", "Denmark", "Japan")),]
+
+ggplot(aes(x=fertilityRate, y = expenses), data = sampleCountries) +
+  geom_line(aes(group = country)) +
+  facet_wrap(~country, scales = "free_y") 
+
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
